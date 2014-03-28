@@ -19,10 +19,42 @@ package framer
 
 import (
   "fmt"
+  "bytes"
   "testing"
 )
 
-func TestSomething(t *testing.T) {
-  fmt.Println("OK")
+func TestReadWrite(t *testing.T) {
+  message := "Hello, this is the message"
+  
+  buffer := new(bytes.Buffer)
+  reader := NewReaderFramer(buffer)
+  writer := NewWriterFramer(buffer)
+  
+  if err := writer.Write([]byte(message)); err != nil {
+    t.Errorf("Could not write message: %v", err)
+  }
+  if err := writer.Write([]byte(message)); err != nil {
+    t.Errorf("Could not write message: %v", err)
+  }
+  if err := writer.Write([]byte(message)); err != nil {
+    t.Errorf("Could not write message: %v", err)
+  }
+  
+  fmt.Println(buffer.Bytes())
+  
+  for buffer.Len() > 0 {
+    if m, err := reader.Read(); err != nil {
+      t.Errorf("Could not read message: %v", err)
+    }else if len(m) < 1 {
+      t.Errorf("Invalid number of messages read: %d < 1", len(m))
+    }else if string(m[0]) != message {
+      t.Errorf("Invalid message data: %+v != %+v", string(m[0]), message)
+    }else{
+      for _, e := range m {
+        fmt.Printf("Received: %q\n", string(e))
+      }
+    }
+  }
+  
 }
 

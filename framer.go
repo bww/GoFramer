@@ -19,6 +19,7 @@ package framer
 
 import (
   "io"
+  "fmt"
   "bytes"
   "encoding/binary"
 )
@@ -64,12 +65,19 @@ type ReaderFramer struct {
 }
 
 /**
+ * Create a reader framer
+ */
+func NewReaderFramer(reader io.Reader) *ReaderFramer {
+  return &ReaderFramer{reader:reader}
+}
+
+/**
  * Read messages. This method blocks until at least one full message is read.
  */
 func (r *ReaderFramer) Read() ([][]byte, error) {
   
   clen  := 24 // TEMPORARY! make this larger
-  chunk := make([]byte, blen)
+  chunk := make([]byte, clen)
   
   for {
     
@@ -89,7 +97,7 @@ func (r *ReaderFramer) Read() ([][]byte, error) {
     // check for a frame header
     if r.buffer.Len() > SIZEOF_INT {
       // if we have enough data to read at least one message, do so
-      if mlen := binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() >= mlen {
+      if mlen := binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() >= int(mlen) {
         return r.decode()
       }
     }
@@ -105,7 +113,7 @@ func (r *ReaderFramer) Read() ([][]byte, error) {
  * message.
  */
 func (r *ReaderFramer) decode() ([][]byte, error) {
-  messages := make([][]byte)
+  messages := make([][]byte, 0)
   
   for {
     var flen uint32
@@ -116,8 +124,8 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
     }
     
     // check the header length
-    if flen = binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() < flen {
-      return nil, fmt.Println("Could not decode frame header: %v", err)
+    if flen = binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() < int(flen) {
+      break // not enough data available for the entire frame
     }
     
     // skip the header
@@ -127,10 +135,10 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
     message := make([]byte, flen)
     
     // read our message data
-    if n, err := r.buffer.Read(message); n < flen {
-      return nil, fmt.Println("Could not read entire frame: %d < %d", n, flen)
+    if n, err := r.buffer.Read(message); n < int(flen) {
+      return nil, fmt.Errorf("Could not read entire frame: %d < %d", n, flen)
     }else if err != nil {
-      return nil, fmt.Println("Could not read entire frame: %v", err)
+      return nil, fmt.Errorf("Could not read entire frame: %v", err)
     }
     
     // append our frame to the output set
@@ -146,7 +154,32 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
  * An output framer that uses a Writer as its underlying input
  */
 type WriterFramer struct {
-  
+  writer  io.Writer
 }
 
+/**
+ * Create a writer framer
+ */
+func NewWriterFramer(writer io.Writer) *WriterFramer {
+  return &WriterFramer{writer}
+}
+
+/**
+ * Write a message to the underlying writer. This method blocks until the entire
+ * message is written.
+ */
+func (w *WriterFramer) Write(message []byte) (error) {
+  
+  // write our header
+  if err := binary.Write(w.writer, binary.BigEndian, uint32(len(message))); err != nil {
+    return fmt.Errorf("Could not write message header: %v", err)
+  }
+  
+  // write our message data
+  if _, err := w.writer.Write(message); err != nil {
+    return fmt.Errorf("Could not write message data: %v", err)
+  }
+  
+  return nil
+}
 
