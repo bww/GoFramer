@@ -39,6 +39,7 @@ import (
 
 const (
   SIZEOF_INT  = 4 // 4 byte int is used for frame length header (uint32)
+  BUFFER_SIZE = 1024
 )
 
 /**
@@ -89,7 +90,7 @@ func NewReaderFramer(reader io.Reader) *ReaderFramer {
  */
 func (r *ReaderFramer) Read() ([][]byte, error) {
   
-  clen  := 1024
+  clen  := BUFFER_SIZE
   chunk := make([]byte, clen)
   
   for {
