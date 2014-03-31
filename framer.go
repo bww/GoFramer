@@ -89,7 +89,7 @@ func NewReaderFramer(reader io.Reader) *ReaderFramer {
  */
 func (r *ReaderFramer) Read() ([][]byte, error) {
   
-  clen  := 24 // TEMPORARY! make this larger
+  clen  := 1024
   chunk := make([]byte, clen)
   
   for {
