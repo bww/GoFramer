@@ -192,7 +192,7 @@ func (w *WriterFramer) Write(message []byte) (error) {
   
   // write our message data
   for n := 0; n < mlen; {
-    if z, err := w.writer.Write(message); err != nil {
+    if z, err := w.writer.Write(message[n:]); err != nil {
       return fmt.Errorf("Could not write message data: %v", err)
     }else{
       n += z
