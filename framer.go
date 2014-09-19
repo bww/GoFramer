@@ -183,15 +183,20 @@ func NewWriterFramer(writer io.Writer) *WriterFramer {
  * message is written.
  */
 func (w *WriterFramer) Write(message []byte) (error) {
+  mlen := len(message)
   
   // write our header
-  if err := binary.Write(w.writer, binary.BigEndian, uint32(len(message))); err != nil {
+  if err := binary.Write(w.writer, binary.BigEndian, uint32(mlen)); err != nil {
     return fmt.Errorf("Could not write message header: %v", err)
   }
   
   // write our message data
-  if _, err := w.writer.Write(message); err != nil {
-    return fmt.Errorf("Could not write message data: %v", err)
+  for n := 0; n < mlen; {
+    if z, err := w.writer.Write(message); err != nil {
+      return fmt.Errorf("Could not write message data: %v", err)
+    }else{
+      n += z
+    }
   }
   
   return nil
