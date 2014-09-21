@@ -106,7 +106,7 @@ func (r *ReaderFramer) Read() ([][]byte, error) {
     // check for a frame header
     if r.buffer.Len() > SIZEOF_INT {
       // if we have enough data to read at least one message, do so
-      if flen := binary.BigEndian.Uint32(r.buffer.Bytes()); (r.buffer.Len() - SIZEOF_INT) >= int(flen) {
+      if flen := binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() >= int(SIZEOF_INT + flen) {
         return r.decode()
       }
     }
