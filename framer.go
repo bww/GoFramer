@@ -103,17 +103,19 @@ func (r *ReaderFramer) Read() ([][]byte, error) {
       r.buffer.Write(chunk[:n]) // bytes.Buffer.Write() error is always nil according to the docs, so we don't check it
     }
     
-    // make sure nothing went wrong while reading (a reader may read valid bytes before producing an error)
-    if err != nil {
-      return nil, fmt.Errorf("Error reading from underlying input: %v", err)
-    }
-    
     // check for a frame header
     if r.buffer.Len() > SIZEOF_INT {
       // if we have enough data to read at least one message, do so
-      if mlen := binary.BigEndian.Uint32(r.buffer.Bytes()); (r.buffer.Len() - SIZEOF_INT) >= int(mlen) {
+      if flen := binary.BigEndian.Uint32(r.buffer.Bytes()); (r.buffer.Len() - SIZEOF_INT) >= int(flen) {
         return r.decode()
       }
+    }
+    
+    // make sure nothing went wrong while reading (a reader may read valid bytes before producing an error)
+    if err == io.EOF {
+      return nil, io.EOF
+    }else if err != nil {
+      return nil, fmt.Errorf("Error reading from underlying input: %v", err)
     }
     
   }
@@ -133,28 +135,22 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
     
     // make sure we have at least one frame header
     if r.buffer.Len() < SIZEOF_INT {
-      break
+      break // not enough data available for a header
     }
     
-    // check the header length
-    flen := binary.BigEndian.Uint32(r.buffer.Bytes())
-    // skip the header
-    r.buffer.Next(SIZEOF_INT)
+    // check the payload length
+    flen := int(binary.BigEndian.Uint32(r.buffer.Bytes()))
     // make sure we have a full message in the buffer
-    if r.buffer.Len() < int(flen) {
+    if r.buffer.Len() < SIZEOF_INT + flen {
       break // not enough data available for the entire frame
     }
     
+    // consume the header
+    r.buffer.Next(SIZEOF_INT)
     // set up our message buffer
     message := make([]byte, flen)
-    
-    // read our message data
-    if n, err := r.buffer.Read(message); n < int(flen) {
-      return nil, fmt.Errorf("Could not read entire frame: %d < %d of %d", n, flen, r.buffer.Len())
-    }else if err != nil {
-      return nil, fmt.Errorf("Could not read entire frame: %v", err)
-    }
-    
+    // copy over bytes
+    copy(message, r.buffer.Next(flen))
     // append our frame to the output set
     messages = append(messages, message)
     

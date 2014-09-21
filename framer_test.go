@@ -53,9 +53,8 @@ func TestReadWrite(t *testing.T) {
     t.Errorf("Could not write message: %v", err)
   }
   
-  fmt.Println(buffer.Bytes())
-  
   for buffer.Len() > 0 {
+    fmt.Printf("--- %v ---\n", buffer.Len())
     if m, err := reader.Read(); err != nil {
       t.Errorf("Could not read message: %v", err)
     }else if len(m) < 1 {
