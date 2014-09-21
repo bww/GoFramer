@@ -130,7 +130,6 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
   messages := make([][]byte, 0)
   
   for {
-    var flen uint32
     
     // make sure we have at least one frame header
     if r.buffer.Len() < SIZEOF_INT {
@@ -138,12 +137,13 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
     }
     
     // check the header length
-    if flen = binary.BigEndian.Uint32(r.buffer.Bytes()); r.buffer.Len() < int(flen) {
-      break // not enough data available for the entire frame
-    }
-    
+    flen := binary.BigEndian.Uint32(r.buffer.Bytes())
     // skip the header
     r.buffer.Next(SIZEOF_INT)
+    // make sure we have a full message in the buffer
+    if r.buffer.Len() < int(flen) {
+      break // not enough data available for the entire frame
+    }
     
     // set up our message buffer
     message := make([]byte, flen)
