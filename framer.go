@@ -150,7 +150,7 @@ func (r *ReaderFramer) decode() ([][]byte, error) {
     
     // read our message data
     if n, err := r.buffer.Read(message); n < int(flen) {
-      return nil, fmt.Errorf("Could not read entire frame: %d < %d", n, flen)
+      return nil, fmt.Errorf("Could not read entire frame: %d < %d of %d", n, flen, r.buffer.Len())
     }else if err != nil {
       return nil, fmt.Errorf("Could not read entire frame: %v", err)
     }
